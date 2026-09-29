@@ -1,0 +1,257 @@
+.timelog-view {
+  --timelog-line: var(--background-modifier-border);
+  --timelog-accent: var(--interactive-accent);
+  padding: 18px 22px 40px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.timelog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.timelog-date {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+  min-width: 120px;
+  text-align: center;
+}
+
+.timelog-spacer {
+  flex: 1;
+}
+
+.timelog-icon-button,
+.timelog-today-button,
+.timelog-record-button {
+  border: 0;
+  box-shadow: none;
+}
+
+.timelog-icon-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.timelog-composer {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  background: var(--background-primary);
+  padding: 12px;
+  margin-bottom: 28px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.timelog-composer:focus-within,
+.timelog-composer.is-dragging {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.timelog-input {
+  width: 100%;
+  min-height: 92px;
+  max-height: 260px;
+  resize: vertical;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 4px 4px 8px;
+  font-size: var(--font-text-size);
+  line-height: var(--line-height-normal);
+}
+
+.timelog-input:focus {
+  box-shadow: none;
+}
+
+.timelog-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 4px 8px;
+}
+
+.timelog-attachment {
+  position: relative;
+  width: 88px;
+  height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-secondary);
+}
+
+.timelog-attachment img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.timelog-attachment-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--background-primary) 86%, transparent);
+}
+
+.timelog-composer-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 2px 0;
+}
+
+.timelog-record-button {
+  margin-left: auto;
+  border-radius: 999px;
+  padding-inline: 18px;
+}
+
+.timelog-heading {
+  margin: 0 0 14px;
+  font-size: var(--font-ui-large);
+}
+
+.timelog-list {
+  position: relative;
+  padding-left: 26px;
+}
+
+.timelog-list::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--timelog-line);
+}
+
+.timelog-entry {
+  position: relative;
+  padding: 0 0 18px 18px;
+}
+
+.timelog-entry::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--timelog-accent);
+  box-shadow: 0 0 0 4px var(--background-primary);
+}
+
+.timelog-time {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--background-primary);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+}
+
+.timelog-card {
+  position: relative;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--background-primary);
+}
+
+.timelog-card .markdown-rendered > :first-child {
+  margin-top: 0;
+}
+
+.timelog-card .markdown-rendered > :last-child {
+  margin-bottom: 0;
+}
+
+.timelog-card img {
+  max-height: 420px;
+  border-radius: 8px;
+}
+
+.timelog-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.timelog-card:hover .timelog-actions,
+.timelog-card:focus-within .timelog-actions {
+  opacity: 1;
+}
+
+.timelog-entry-action {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  box-shadow: none;
+  background: var(--background-primary);
+}
+
+.timelog-empty {
+  color: var(--text-muted);
+  padding: 14px 0 18px 18px;
+}
+
+.timelog-modal-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  margin: 12px 0;
+}
+
+.timelog-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .timelog-view {
+    padding: 12px 14px 28px;
+  }
+
+  .timelog-today-button {
+    display: none;
+  }
+
+  .timelog-actions {
+    opacity: 1;
+  }
+
+  .timelog-card img {
+    max-height: 320px;
+  }
+}
