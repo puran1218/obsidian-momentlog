@@ -272,32 +272,34 @@
   line-height: 1.6;
 }
 
-.momentlog-settings-guide {
+.momentlog-settings-path {
+  margin: 4px 0 16px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  word-break: break-word;
+}
+
+.momentlog-settings-details {
   max-width: 680px;
-  margin: 18px 0 26px;
+  margin: 14px 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--background-modifier-border);
 }
 
-.momentlog-settings-guide h3 {
-  margin-bottom: 8px;
+.momentlog-settings-details summary {
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+  color: var(--text-normal);
 }
 
-.momentlog-settings-guide ol {
-  margin-top: 8px;
-  padding-left: 22px;
-}
-
-.momentlog-settings-guide li {
-  margin: 7px 0;
+.momentlog-settings-details p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
 .momentlog-settings-note {
-  color: var(--text-muted);
-}
-
-.momentlog-settings-guide-muted {
-  padding-top: 4px;
-  border-top: 1px solid var(--background-modifier-border);
   color: var(--text-muted);
 }
 
@@ -331,8 +333,16 @@
 }
 
 .momentlog-image-modal .modal-close-button {
+  position: absolute;
   z-index: 3;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(30, 30, 30, 0.78);
   color: #fff;
+  backdrop-filter: blur(10px);
 }
 
 .momentlog-image-modal-content {
