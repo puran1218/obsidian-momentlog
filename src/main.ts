@@ -2,6 +2,7 @@ import {
   App,
   ItemView,
   MarkdownRenderer,
+  Menu,
   Modal,
   Notice,
   Plugin,
@@ -606,7 +607,43 @@ class TimelogView extends ItemView {
 
     for (const momentEntry of moments) {
       const entry = this.listEl.createDiv({ cls: "timelog-entry" });
-      entry.createDiv({ text: momentEntry.time, cls: "timelog-time" });
+      const header = entry.createDiv({ cls: "timelog-entry-header" });
+      header.createDiv({ text: momentEntry.time, cls: "timelog-time" });
+
+      const mobileMenu = header.createEl("button", {
+        cls: "timelog-entry-menu",
+        attr: { "aria-label": "More actions", title: "More actions" }
+      });
+      setIcon(mobileMenu, "ellipsis");
+
+      const showActionsMenu = (event: MouseEvent): void => {
+        const menu = new Menu();
+
+        menu.addItem((item) =>
+          item
+            .setTitle("Edit")
+            .setIcon("pencil")
+            .onClick(() => {
+              this.openEditModal(momentEntry);
+            })
+        );
+
+        menu.addItem((item) =>
+          item
+            .setTitle("Delete")
+            .setIcon("trash-2")
+            .onClick(() => {
+              this.confirmDelete(momentEntry);
+            })
+        );
+
+        menu.showAtMouseEvent(event);
+      };
+
+      mobileMenu.addEventListener("click", (event) => {
+        event.stopPropagation();
+        showActionsMenu(event);
+      });
 
       const card = entry.createDiv({ cls: "timelog-card" });
       const rendered = card.createDiv({ cls: "timelog-entry-content" });
@@ -618,6 +655,25 @@ class TimelogView extends ItemView {
         this
       );
 
+      rendered.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
+        image.addClass("timelog-viewable-image");
+        image.setAttribute("role", "button");
+        image.setAttribute("tabindex", "0");
+        image.setAttribute("aria-label", image.alt ? `View image: ${image.alt}` : "View image");
+
+        const openViewer = (): void => {
+          new ImageViewerModal(this.app, image.src, image.alt).open();
+        };
+
+        image.addEventListener("click", openViewer);
+        image.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openViewer();
+          }
+        });
+      });
+
       const actions = card.createDiv({ cls: "timelog-actions" });
 
       const edit = actions.createEl("button", {
@@ -626,10 +682,7 @@ class TimelogView extends ItemView {
       });
       setIcon(edit, "pencil");
       edit.addEventListener("click", () => {
-        new EditMomentModal(this.app, momentEntry, async (content) => {
-          await this.plugin.updateMoment(this.selectedDate, momentEntry, content);
-          await this.refreshTimeline();
-        }).open();
+        this.openEditModal(momentEntry);
       });
 
       const remove = actions.createEl("button", {
@@ -638,15 +691,221 @@ class TimelogView extends ItemView {
       });
       setIcon(remove, "trash-2");
       remove.addEventListener("click", () => {
-        if (!window.confirm("Delete this timelog entry?")) {
-          return;
-        }
-
-        void this.plugin.deleteMoment(this.selectedDate, momentEntry).then(() => {
-          void this.refreshTimeline();
-        });
+        this.confirmDelete(momentEntry);
       });
     }
+  }
+
+  private openEditModal(momentEntry: TimelogMoment): void {
+    new EditMomentModal(this.app, momentEntry, async (content) => {
+      await this.plugin.updateMoment(this.selectedDate, momentEntry, content);
+      await this.refreshTimeline();
+    }).open();
+  }
+
+  private confirmDelete(momentEntry: TimelogMoment): void {
+    if (!window.confirm("Delete this timelog entry?")) {
+      return;
+    }
+
+    void this.plugin.deleteMoment(this.selectedDate, momentEntry).then(() => {
+      void this.refreshTimeline();
+    });
+  }
+}
+
+class ImageViewerModal extends Modal {
+  private readonly src: string;
+  private readonly alt: string;
+  private scale = 1;
+  private translateX = 0;
+  private translateY = 0;
+  private imageEl!: HTMLImageElement;
+  private zoomLabelEl!: HTMLElement;
+  private pointers = new Map<number, { x: number; y: number }>();
+  private dragStart: { x: number; y: number; translateX: number; translateY: number } | null = null;
+  private pinchStartDistance = 0;
+  private pinchStartScale = 1;
+
+  constructor(app: App, src: string, alt: string) {
+    super(app);
+    this.src = src;
+    this.alt = alt;
+  }
+
+  onOpen(): void {
+    this.modalEl.addClass("timelog-image-modal");
+    this.contentEl.addClass("timelog-image-modal-content");
+
+    const stage = this.contentEl.createDiv({ cls: "timelog-image-stage" });
+    this.imageEl = stage.createEl("img", {
+      cls: "timelog-image-full",
+      attr: {
+        src: this.src,
+        alt: this.alt || "Timelog image",
+        draggable: "false"
+      }
+    });
+
+    const controls = this.contentEl.createDiv({ cls: "timelog-image-controls" });
+
+    const zoomOut = controls.createEl("button", {
+      cls: "timelog-image-control",
+      attr: { "aria-label": "Zoom out", title: "Zoom out" }
+    });
+    setIcon(zoomOut, "minus");
+
+    this.zoomLabelEl = controls.createDiv({ cls: "timelog-image-zoom-label" });
+
+    const zoomIn = controls.createEl("button", {
+      cls: "timelog-image-control",
+      attr: { "aria-label": "Zoom in", title: "Zoom in" }
+    });
+    setIcon(zoomIn, "plus");
+
+    const reset = controls.createEl("button", {
+      cls: "timelog-image-control",
+      attr: { "aria-label": "Reset zoom", title: "Reset zoom" }
+    });
+    setIcon(reset, "maximize-2");
+
+    zoomOut.addEventListener("click", () => this.setScale(this.scale / 1.35));
+    zoomIn.addEventListener("click", () => this.setScale(this.scale * 1.35));
+    reset.addEventListener("click", () => this.resetView());
+
+    stage.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        this.setScale(this.scale * (event.deltaY < 0 ? 1.12 : 0.88));
+      },
+      { passive: false }
+    );
+
+    stage.addEventListener("dblclick", () => {
+      if (this.scale > 1) {
+        this.resetView();
+      } else {
+        this.setScale(2.5);
+      }
+    });
+
+    stage.addEventListener("pointerdown", (event) => {
+      stage.setPointerCapture(event.pointerId);
+      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (this.pointers.size === 1) {
+        this.dragStart = {
+          x: event.clientX,
+          y: event.clientY,
+          translateX: this.translateX,
+          translateY: this.translateY
+        };
+      }
+
+      if (this.pointers.size === 2) {
+        this.pinchStartDistance = this.pointerDistance();
+        this.pinchStartScale = this.scale;
+        this.dragStart = null;
+      }
+    });
+
+    stage.addEventListener("pointermove", (event) => {
+      if (!this.pointers.has(event.pointerId)) {
+        return;
+      }
+
+      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (this.pointers.size === 2) {
+        const distance = this.pointerDistance();
+
+        if (this.pinchStartDistance > 0) {
+          this.setScale(this.pinchStartScale * (distance / this.pinchStartDistance));
+        }
+
+        return;
+      }
+
+      if (this.pointers.size === 1 && this.dragStart && this.scale > 1) {
+        this.translateX =
+          this.dragStart.translateX + event.clientX - this.dragStart.x;
+        this.translateY =
+          this.dragStart.translateY + event.clientY - this.dragStart.y;
+        this.applyTransform();
+      }
+    });
+
+    const finishPointer = (event: PointerEvent): void => {
+      this.pointers.delete(event.pointerId);
+
+      if (this.pointers.size === 1) {
+        const remaining = Array.from(this.pointers.values())[0];
+
+        if (remaining) {
+          this.dragStart = {
+            x: remaining.x,
+            y: remaining.y,
+            translateX: this.translateX,
+            translateY: this.translateY
+          };
+        }
+      } else {
+        this.dragStart = null;
+      }
+
+      if (this.pointers.size < 2) {
+        this.pinchStartDistance = 0;
+      }
+    };
+
+    stage.addEventListener("pointerup", finishPointer);
+    stage.addEventListener("pointercancel", finishPointer);
+
+    this.resetView();
+  }
+
+  onClose(): void {
+    this.pointers.clear();
+    this.contentEl.empty();
+  }
+
+  private setScale(value: number): void {
+    this.scale = Math.min(5, Math.max(1, value));
+
+    if (this.scale === 1) {
+      this.translateX = 0;
+      this.translateY = 0;
+    }
+
+    this.applyTransform();
+  }
+
+  private resetView(): void {
+    this.scale = 1;
+    this.translateX = 0;
+    this.translateY = 0;
+    this.applyTransform();
+  }
+
+  private applyTransform(): void {
+    if (!this.imageEl || !this.zoomLabelEl) {
+      return;
+    }
+
+    this.imageEl.style.transform =
+      `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
+    this.zoomLabelEl.setText(`${Math.round(this.scale * 100)}%`);
+  }
+
+  private pointerDistance(): number {
+    const points = Array.from(this.pointers.values());
+
+    if (points.length < 2 || !points[0] || !points[1]) {
+      return 0;
+    }
+
+    return Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y);
   }
 }
 
