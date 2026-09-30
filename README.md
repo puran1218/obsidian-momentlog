@@ -138,6 +138,37 @@ Production build and installable package:
 npm run build
 ```
 
+## Release
+
+The release workflow publishes the exact files Obsidian and BRAT expect:
+
+- `main.js`
+- `manifest.json`
+- `styles.css`
+- `timelog-<version>.zip` for convenient manual installation
+
+The release version must match `manifest.json`.
+
+You can release either way:
+
+1. Push a semantic-version tag such as `0.1.0`.
+2. Run **Actions → Release → Run workflow** and enter the current version.
+
+The workflow builds Timelog, verifies the version, creates the installable zip, and publishes the GitHub Release automatically.
+
+For a tag-based release:
+
+```bash
+git tag 0.1.0
+git push origin 0.1.0
+```
+
+After the release exists, BRAT can install Timelog directly from:
+
+```
+https://github.com/puran1218/obsidian-timelog
+```
+
 ## Scope
 
 Timelog is intentionally a capture tool, not a journaling system.
