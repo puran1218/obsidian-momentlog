@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-timelog",
-  "version": "0.1.1",
-  "description": "A tiny timeline-style daily capture plugin for Obsidian.",
+  "name": "obsidian-momentlog",
+  "version": "0.2.0",
+  "description": "Capture quick notes and photos as moments in a simple daily timeline for Obsidian.",
   "main": "main.js",
   "type": "module",
   "scripts": {
