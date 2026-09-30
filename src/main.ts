@@ -15,16 +15,17 @@ import {
   setIcon
 } from "obsidian";
 
-const VIEW_TYPE = "timelog-view";
-const SECTION_HEADING = "## Timelog";
-const ENTRY_PATTERN = /<!-- timelog-entry:([^\n]+) -->\s*\n### ([^\n]+)\s*\n\n?([\s\S]*?)\n<!-- \/timelog-entry -->/g;
+const VIEW_TYPE = "momentlog-view";
+const SECTION_HEADING = "## Momentlog";
+const LEGACY_SECTION_HEADING = "## Timelog";
+const ENTRY_PATTERN = /<!-- (?:momentlog|timelog)-entry:([^\n]+) -->\s*\n### ([^\n]+)\s*\n\n?([\s\S]*?)\n<!-- \/(?:momentlog|timelog)-entry -->/g;
 
-interface TimelogSettings {
+interface MomentlogSettings {
   folder: string;
   fileNameFormat: string;
 }
 
-interface TimelogMoment {
+interface MomentlogMoment {
   id: string;
   time: string;
   content: string;
@@ -35,47 +36,47 @@ interface PendingAttachment {
   url: string;
 }
 
-const DEFAULT_SETTINGS: TimelogSettings = {
-  folder: "Timelog",
+const DEFAULT_SETTINGS: MomentlogSettings = {
+  folder: "Momentlog",
   fileNameFormat: "YYYY-MM-DD"
 };
 
-export default class TimelogPlugin extends Plugin {
-  settings: TimelogSettings = DEFAULT_SETTINGS;
+export default class MomentlogPlugin extends Plugin {
+  settings: MomentlogSettings = DEFAULT_SETTINGS;
 
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    this.registerView(VIEW_TYPE, (leaf) => new TimelogView(leaf, this));
+    this.registerView(VIEW_TYPE, (leaf) => new MomentlogView(leaf, this));
 
-    this.addRibbonIcon("clock-3", "Open Timelog", () => {
-      void this.openTimelog(false);
+    this.addRibbonIcon("clock-3", "Open Momentlog", () => {
+      void this.openMomentlog(false);
     });
 
     this.addCommand({
-      id: "open-timelog",
-      name: "Open Timelog",
+      id: "open",
+      name: "Open Momentlog",
       callback: () => {
-        void this.openTimelog(false);
+        void this.openMomentlog(false);
       }
     });
 
     this.addCommand({
-      id: "capture-timelog",
+      id: "capture-moment",
       name: "Capture a moment",
       callback: () => {
-        void this.openTimelog(true);
+        void this.openMomentlog(true);
       }
     });
 
-    this.addSettingTab(new TimelogSettingTab(this.app, this));
+    this.addSettingTab(new MomentlogSettingTab(this.app, this));
   }
 
   onunload(): void {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE);
   }
 
-  async openTimelog(focusComposer: boolean): Promise<void> {
+  async openMomentlog(focusComposer: boolean): Promise<void> {
     let leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE)[0];
 
     if (!leaf) {
@@ -88,7 +89,7 @@ export default class TimelogPlugin extends Plugin {
 
     await this.app.workspace.revealLeaf(leaf);
 
-    if (focusComposer && leaf.view instanceof TimelogView) {
+    if (focusComposer && leaf.view instanceof MomentlogView) {
       leaf.view.focusComposer();
     }
   }
@@ -122,7 +123,7 @@ export default class TimelogPlugin extends Plugin {
     return this.app.vault.create(path, initial);
   }
 
-  async readMoments(date: string): Promise<TimelogMoment[]> {
+  async readMoments(date: string): Promise<MomentlogMoment[]> {
     const file = await this.getDailyFile(date);
 
     if (!file) {
@@ -130,7 +131,7 @@ export default class TimelogPlugin extends Plugin {
     }
 
     const content = await this.app.vault.cachedRead(file);
-    const moments: TimelogMoment[] = [];
+    const moments: MomentlogMoment[] = [];
     ENTRY_PATTERN.lastIndex = 0;
 
     let match: RegExpExecArray | null;
@@ -161,7 +162,7 @@ export default class TimelogPlugin extends Plugin {
     await this.app.vault.process(file, (source) => this.insertEntry(source, block));
   }
 
-  async updateMoment(date: string, momentEntry: TimelogMoment, content: string): Promise<void> {
+  async updateMoment(date: string, momentEntry: MomentlogMoment, content: string): Promise<void> {
     const file = await this.getDailyFile(date);
 
     if (!file) {
@@ -169,20 +170,20 @@ export default class TimelogPlugin extends Plugin {
     }
 
     const pattern = new RegExp(
-      `<!-- timelog-entry:${this.escapeRegex(momentEntry.id)} -->[\\s\\S]*?<!-- \\/timelog-entry -->`
+      `<!-- (?:momentlog|timelog)-entry:${this.escapeRegex(momentEntry.id)} -->[\\s\\S]*?<!-- \\/(?:momentlog|timelog)-entry -->`
     );
     const replacement = this.buildEntryBlock(momentEntry.id, momentEntry.time, content);
 
     await this.app.vault.process(file, (source) => {
       if (!pattern.test(source)) {
-        throw new Error("Timelog entry not found.");
+        throw new Error("Momentlog entry not found.");
       }
 
       return source.replace(pattern, replacement);
     });
   }
 
-  async deleteMoment(date: string, momentEntry: TimelogMoment): Promise<void> {
+  async deleteMoment(date: string, momentEntry: MomentlogMoment): Promise<void> {
     const file = await this.getDailyFile(date);
 
     if (!file) {
@@ -190,7 +191,7 @@ export default class TimelogPlugin extends Plugin {
     }
 
     const pattern = new RegExp(
-      `\\n?<!-- timelog-entry:${this.escapeRegex(momentEntry.id)} -->[\\s\\S]*?<!-- \\/timelog-entry -->\\n?`
+      `\\n?<!-- (?:momentlog|timelog)-entry:${this.escapeRegex(momentEntry.id)} -->[\\s\\S]*?<!-- \\/(?:momentlog|timelog)-entry -->\\n?`
     );
 
     await this.app.vault.process(file, (source) => source.replace(pattern, "\n"));
@@ -219,8 +220,18 @@ export default class TimelogPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const data = (await this.loadData()) as Partial<TimelogSettings> | null;
+    const data = (await this.loadData()) as Partial<MomentlogSettings> | null;
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+
+    if (!data?.folder) {
+      const momentlogFolder = this.app.vault.getAbstractFileByPath(DEFAULT_SETTINGS.folder);
+      const legacyFolder = this.app.vault.getAbstractFileByPath("Timelog");
+
+      if (!momentlogFolder && legacyFolder) {
+        this.settings.folder = "Timelog";
+        await this.saveData(this.settings);
+      }
+    }
   }
 
   async saveSettings(): Promise<void> {
@@ -228,11 +239,11 @@ export default class TimelogPlugin extends Plugin {
   }
 
   private buildEntryBlock(id: string, time: string, content: string): string {
-    return `<!-- timelog-entry:${id} -->\n### ${time}\n\n${content.trim()}\n<!-- /timelog-entry -->`;
+    return `<!-- momentlog-entry:${id} -->\n### ${time}\n\n${content.trim()}\n<!-- /momentlog-entry -->`;
   }
 
   private insertEntry(source: string, block: string): string {
-    const headingPattern = /^## Timelog\s*$/m;
+    const headingPattern = /^## Momentlog\s*$/m;
     const heading = headingPattern.exec(source);
 
     if (!heading || heading.index === undefined) {
@@ -293,8 +304,8 @@ export default class TimelogPlugin extends Plugin {
   }
 }
 
-class TimelogView extends ItemView {
-  private plugin: TimelogPlugin;
+class MomentlogView extends ItemView {
+  private plugin: MomentlogPlugin;
   private selectedDate = moment().format("YYYY-MM-DD");
   private textareaEl!: HTMLTextAreaElement;
   private recordButtonEl!: HTMLButtonElement;
@@ -304,7 +315,7 @@ class TimelogView extends ItemView {
   private pendingAttachments: PendingAttachment[] = [];
   private capturing = false;
 
-  constructor(leaf: WorkspaceLeaf, plugin: TimelogPlugin) {
+  constructor(leaf: WorkspaceLeaf, plugin: MomentlogPlugin) {
     super(leaf);
     this.plugin = plugin;
   }
@@ -314,7 +325,7 @@ class TimelogView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Daily timelog";
+    return "Momentlog";
   }
 
   getIcon(): string {
@@ -323,11 +334,11 @@ class TimelogView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.contentEl.empty();
-    this.contentEl.addClass("timelog-view");
+    this.contentEl.addClass("momentlog-view");
     this.buildToolbar();
     this.buildComposer();
-    this.contentEl.createEl("h3", { text: "Timelog", cls: "timelog-heading" });
-    this.listEl = this.contentEl.createDiv({ cls: "timelog-list" });
+    this.contentEl.createEl("h3", { text: "Momentlog", cls: "momentlog-heading" });
+    this.listEl = this.contentEl.createDiv({ cls: "momentlog-list" });
 
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
@@ -358,9 +369,9 @@ class TimelogView extends ItemView {
   }
 
   private buildToolbar(): void {
-    const toolbar = this.contentEl.createDiv({ cls: "timelog-toolbar" });
+    const toolbar = this.contentEl.createDiv({ cls: "momentlog-toolbar" });
     const previous = toolbar.createEl("button", {
-      cls: "timelog-icon-button",
+      cls: "momentlog-icon-button",
       attr: { "aria-label": "Previous day" }
     });
     setIcon(previous, "chevron-left");
@@ -368,10 +379,10 @@ class TimelogView extends ItemView {
       void this.changeDate(-1);
     });
 
-    this.dateEl = toolbar.createDiv({ cls: "timelog-date" });
+    this.dateEl = toolbar.createDiv({ cls: "momentlog-date" });
 
     const next = toolbar.createEl("button", {
-      cls: "timelog-icon-button",
+      cls: "momentlog-icon-button",
       attr: { "aria-label": "Next day" }
     });
     setIcon(next, "chevron-right");
@@ -379,11 +390,11 @@ class TimelogView extends ItemView {
       void this.changeDate(1);
     });
 
-    toolbar.createDiv({ cls: "timelog-spacer" });
+    toolbar.createDiv({ cls: "momentlog-spacer" });
 
     const today = toolbar.createEl("button", {
       text: "Today",
-      cls: "timelog-today-button"
+      cls: "momentlog-today-button"
     });
     today.addEventListener("click", () => {
       this.selectedDate = moment().format("YYYY-MM-DD");
@@ -393,21 +404,21 @@ class TimelogView extends ItemView {
   }
 
   private buildComposer(): void {
-    const composer = this.contentEl.createDiv({ cls: "timelog-composer" });
+    const composer = this.contentEl.createDiv({ cls: "momentlog-composer" });
 
     this.textareaEl = composer.createEl("textarea", {
-      cls: "timelog-input",
+      cls: "momentlog-input",
       attr: {
         placeholder: "What are you doing right now?",
-        "aria-label": "New timelog entry"
+        "aria-label": "New moment"
       }
     });
 
-    this.attachmentsEl = composer.createDiv({ cls: "timelog-attachments" });
+    this.attachmentsEl = composer.createDiv({ cls: "momentlog-attachments" });
 
-    const footer = composer.createDiv({ cls: "timelog-composer-footer" });
+    const footer = composer.createDiv({ cls: "momentlog-composer-footer" });
     const addImage = footer.createEl("button", {
-      cls: "timelog-icon-button",
+      cls: "momentlog-icon-button",
       attr: { "aria-label": "Add images", title: "Add images" }
     });
     setIcon(addImage, "image-plus");
@@ -429,7 +440,7 @@ class TimelogView extends ItemView {
 
     this.recordButtonEl = footer.createEl("button", {
       text: "Record",
-      cls: "mod-cta timelog-record-button"
+      cls: "mod-cta momentlog-record-button"
     });
     this.recordButtonEl.disabled = true;
     this.recordButtonEl.addEventListener("click", () => {
@@ -509,7 +520,7 @@ class TimelogView extends ItemView {
     this.attachmentsEl.empty();
 
     this.pendingAttachments.forEach((attachment, index) => {
-      const item = this.attachmentsEl.createDiv({ cls: "timelog-attachment" });
+      const item = this.attachmentsEl.createDiv({ cls: "momentlog-attachment" });
       item.createEl("img", {
         attr: {
           src: attachment.url,
@@ -518,7 +529,7 @@ class TimelogView extends ItemView {
       });
 
       const remove = item.createEl("button", {
-        cls: "timelog-attachment-remove",
+        cls: "momentlog-attachment-remove",
         attr: { "aria-label": "Remove image" }
       });
       setIcon(remove, "x");
@@ -568,7 +579,7 @@ class TimelogView extends ItemView {
       this.textareaEl.focus();
     } catch (error) {
       console.error(error);
-      new Notice("Could not save this timelog entry.");
+      new Notice("Could not save this moment.");
     } finally {
       this.capturing = false;
       this.updateCaptureState();
@@ -596,14 +607,14 @@ class TimelogView extends ItemView {
     this.listEl.empty();
 
     if (moments.length === 0) {
-      const empty = this.listEl.createDiv({ cls: "timelog-empty" });
+      const empty = this.listEl.createDiv({ cls: "momentlog-empty" });
       empty.createEl("strong", { text: "Your day starts here." });
       empty.createEl("p", {
         text: "Write a quick note or add a photo above, then select Record."
       });
       empty.createEl("p", {
         text: `Moments are saved to ${this.plugin.getDailyFilePath(this.selectedDate)}.`,
-        cls: "timelog-empty-path"
+        cls: "momentlog-empty-path"
       });
       return;
     }
@@ -611,12 +622,12 @@ class TimelogView extends ItemView {
     const sourcePath = this.plugin.getDailyFilePath(this.selectedDate);
 
     for (const momentEntry of moments) {
-      const entry = this.listEl.createDiv({ cls: "timelog-entry" });
-      const header = entry.createDiv({ cls: "timelog-entry-header" });
-      header.createDiv({ text: momentEntry.time, cls: "timelog-time" });
+      const entry = this.listEl.createDiv({ cls: "momentlog-entry" });
+      const header = entry.createDiv({ cls: "momentlog-entry-header" });
+      header.createDiv({ text: momentEntry.time, cls: "momentlog-time" });
 
       const mobileMenu = header.createEl("button", {
-        cls: "timelog-entry-menu",
+        cls: "momentlog-entry-menu",
         attr: { "aria-label": "More actions", title: "More actions" }
       });
       setIcon(mobileMenu, "ellipsis");
@@ -650,8 +661,8 @@ class TimelogView extends ItemView {
         showActionsMenu(event);
       });
 
-      const card = entry.createDiv({ cls: "timelog-card" });
-      const rendered = card.createDiv({ cls: "timelog-entry-content" });
+      const card = entry.createDiv({ cls: "momentlog-card" });
+      const rendered = card.createDiv({ cls: "momentlog-entry-content" });
       await MarkdownRenderer.render(
         this.app,
         momentEntry.content,
@@ -661,7 +672,7 @@ class TimelogView extends ItemView {
       );
 
       rendered.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
-        image.addClass("timelog-viewable-image");
+        image.addClass("momentlog-viewable-image");
         image.setAttribute("role", "button");
         image.setAttribute("tabindex", "0");
         image.setAttribute("aria-label", image.alt ? `View image: ${image.alt}` : "View image");
@@ -679,10 +690,10 @@ class TimelogView extends ItemView {
         });
       });
 
-      const actions = card.createDiv({ cls: "timelog-actions" });
+      const actions = card.createDiv({ cls: "momentlog-actions" });
 
       const edit = actions.createEl("button", {
-        cls: "timelog-entry-action",
+        cls: "momentlog-entry-action",
         attr: { "aria-label": "Edit", title: "Edit" }
       });
       setIcon(edit, "pencil");
@@ -691,7 +702,7 @@ class TimelogView extends ItemView {
       });
 
       const remove = actions.createEl("button", {
-        cls: "timelog-entry-action",
+        cls: "momentlog-entry-action",
         attr: { "aria-label": "Delete", title: "Delete" }
       });
       setIcon(remove, "trash-2");
@@ -701,15 +712,15 @@ class TimelogView extends ItemView {
     }
   }
 
-  private openEditModal(momentEntry: TimelogMoment): void {
+  private openEditModal(momentEntry: MomentlogMoment): void {
     new EditMomentModal(this.app, momentEntry, async (content) => {
       await this.plugin.updateMoment(this.selectedDate, momentEntry, content);
       await this.refreshTimeline();
     }).open();
   }
 
-  private confirmDelete(momentEntry: TimelogMoment): void {
-    if (!window.confirm("Delete this timelog entry?")) {
+  private confirmDelete(momentEntry: MomentlogMoment): void {
+    if (!window.confirm("Delete this moment?")) {
       return;
     }
 
@@ -739,37 +750,37 @@ class ImageViewerModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("timelog-image-modal");
-    this.contentEl.addClass("timelog-image-modal-content");
+    this.modalEl.addClass("momentlog-image-modal");
+    this.contentEl.addClass("momentlog-image-modal-content");
 
-    const stage = this.contentEl.createDiv({ cls: "timelog-image-stage" });
+    const stage = this.contentEl.createDiv({ cls: "momentlog-image-stage" });
     this.imageEl = stage.createEl("img", {
-      cls: "timelog-image-full",
+      cls: "momentlog-image-full",
       attr: {
         src: this.src,
-        alt: this.alt || "Timelog image",
+        alt: this.alt || "Momentlog image",
         draggable: "false"
       }
     });
 
-    const controls = this.contentEl.createDiv({ cls: "timelog-image-controls" });
+    const controls = this.contentEl.createDiv({ cls: "momentlog-image-controls" });
 
     const zoomOut = controls.createEl("button", {
-      cls: "timelog-image-control",
+      cls: "momentlog-image-control",
       attr: { "aria-label": "Zoom out", title: "Zoom out" }
     });
     setIcon(zoomOut, "minus");
 
-    this.zoomLabelEl = controls.createDiv({ cls: "timelog-image-zoom-label" });
+    this.zoomLabelEl = controls.createDiv({ cls: "momentlog-image-zoom-label" });
 
     const zoomIn = controls.createEl("button", {
-      cls: "timelog-image-control",
+      cls: "momentlog-image-control",
       attr: { "aria-label": "Zoom in", title: "Zoom in" }
     });
     setIcon(zoomIn, "plus");
 
     const reset = controls.createEl("button", {
-      cls: "timelog-image-control",
+      cls: "momentlog-image-control",
       attr: { "aria-label": "Reset zoom", title: "Reset zoom" }
     });
     setIcon(reset, "maximize-2");
@@ -915,12 +926,12 @@ class ImageViewerModal extends Modal {
 }
 
 class EditMomentModal extends Modal {
-  private momentEntry: TimelogMoment;
+  private momentEntry: MomentlogMoment;
   private onSave: (content: string) => Promise<void>;
 
   constructor(
     app: App,
-    momentEntry: TimelogMoment,
+    momentEntry: MomentlogMoment,
     onSave: (content: string) => Promise<void>
   ) {
     super(app);
@@ -933,11 +944,11 @@ class EditMomentModal extends Modal {
     contentEl.createEl("h3", { text: `Edit ${this.momentEntry.time}` });
 
     const textarea = contentEl.createEl("textarea", {
-      cls: "timelog-modal-textarea"
+      cls: "momentlog-modal-textarea"
     });
     textarea.value = this.momentEntry.content;
 
-    const actions = contentEl.createDiv({ cls: "timelog-modal-actions" });
+    const actions = contentEl.createDiv({ cls: "momentlog-modal-actions" });
     const cancel = actions.createEl("button", { text: "Cancel" });
     cancel.addEventListener("click", () => this.close());
 
@@ -960,7 +971,7 @@ class EditMomentModal extends Modal {
         this.close();
       } catch (error) {
         console.error(error);
-        new Notice("Could not update this timelog entry.");
+        new Notice("Could not update this moment.");
         save.disabled = false;
       }
     };
@@ -984,10 +995,10 @@ class EditMomentModal extends Modal {
   }
 }
 
-class TimelogSettingTab extends PluginSettingTab {
-  private plugin: TimelogPlugin;
+class MomentlogSettingTab extends PluginSettingTab {
+  private plugin: MomentlogPlugin;
 
-  constructor(app: App, plugin: TimelogPlugin) {
+  constructor(app: App, plugin: MomentlogPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -995,19 +1006,19 @@ class TimelogSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.addClass("timelog-settings");
+    containerEl.addClass("momentlog-settings");
 
-    containerEl.createEl("h2", { text: "Timelog" });
+    containerEl.createEl("h2", { text: "Momentlog" });
     containerEl.createEl("p", {
-      text: "Capture the small moments that are easy to lose: what you're doing, what just happened, a quick thought, or a photo you want to remember. Timelog keeps capture fast and stores everything as ordinary Markdown in your vault.",
-      cls: "timelog-settings-intro"
+      text: "Capture the small moments that are easy to lose: what you're doing, what just happened, a quick thought, or a photo you want to remember. Momentlog keeps capture fast and stores everything as ordinary Markdown in your vault.",
+      cls: "momentlog-settings-intro"
     });
 
-    const quickStart = containerEl.createDiv({ cls: "timelog-settings-guide" });
+    const quickStart = containerEl.createDiv({ cls: "momentlog-settings-guide" });
     quickStart.createEl("h3", { text: "Quick start" });
     const quickStartList = quickStart.createEl("ol");
     quickStartList.createEl("li", {
-      text: "Open Timelog. On desktop, select the clock icon in the left ribbon. On mobile, open the ribbon/menu and select Timelog. You can always use the Command palette and run Open Timelog."
+      text: "Open Momentlog. On desktop, select the clock icon in the left ribbon. On mobile, open the ribbon/menu and select Momentlog. You can always use the Command palette and run Open Momentlog."
     });
     quickStartList.createEl("li", {
       text: "Write a short note, or paste, drag, or choose one or more photos."
@@ -1017,21 +1028,21 @@ class TimelogSettingTab extends PluginSettingTab {
     });
 
     new Setting(quickStart)
-      .setName("Open Timelog")
+      .setName("Open Momentlog")
       .setDesc("Jump straight to today's capture view.")
       .addButton((button) =>
         button
           .setButtonText("Open")
           .setCta()
           .onClick(() => {
-            void this.plugin.openTimelog(true);
+            void this.plugin.openMomentlog(true);
           })
       );
 
-    const dailyNotes = containerEl.createDiv({ cls: "timelog-settings-guide" });
-    dailyNotes.createEl("h3", { text: "Use Timelog with Daily Notes" });
+    const dailyNotes = containerEl.createDiv({ cls: "momentlog-settings-guide" });
+    dailyNotes.createEl("h3", { text: "Use Momentlog with Daily Notes" });
     dailyNotes.createEl("p", {
-      text: "Timelog works on its own, but it can also share the same daily Markdown file as Obsidian's Daily Notes core plugin."
+      text: "Momentlog works on its own, but it can also share the same daily Markdown file as Obsidian's Daily Notes core plugin."
     });
 
     const dailyNotesList = dailyNotes.createEl("ol");
@@ -1039,25 +1050,25 @@ class TimelogSettingTab extends PluginSettingTab {
       text: "Enable the Daily Notes core plugin in Obsidian."
     });
     dailyNotesList.createEl("li", {
-      text: "In Daily Notes settings, set New file location to Timelog and Date format to YYYY-MM-DD."
+      text: "In Daily Notes settings, set New file location to Momentlog and Date format to YYYY-MM-DD."
     });
     dailyNotesList.createEl("li", {
-      text: "Keep the Timelog folder and file format below set to those same values."
+      text: "Keep the Momentlog folder and file format below set to those same values."
     });
 
     dailyNotes.createEl("p", {
-      text: "Already have an existing Daily Notes folder or date format? Keep it. Just set Timelog below to match your current Daily Notes settings instead.",
-      cls: "timelog-settings-note"
+      text: "Already have an existing Daily Notes folder or date format? Keep it. Just set Momentlog below to match your current Daily Notes settings instead.",
+      cls: "momentlog-settings-note"
     });
 
     containerEl.createEl("h3", { text: "Storage" });
 
     new Setting(containerEl)
       .setName("Daily note folder")
-      .setDesc("Folder where Timelog stores one Markdown file per day. Match your Daily Notes new-file location if you want both to share the same note.")
+      .setDesc("Folder where Momentlog stores one Markdown file per day. Match your Daily Notes new-file location if you want both to share the same note.")
       .addText((text) =>
         text
-          .setPlaceholder("Timelog")
+          .setPlaceholder("Momentlog")
           .setValue(this.plugin.settings.folder)
           .onChange(async (value) => {
             this.plugin.settings.folder = value.trim();
@@ -1078,10 +1089,10 @@ class TimelogSettingTab extends PluginSettingTab {
           })
       );
 
-    const source = containerEl.createDiv({ cls: "timelog-settings-guide timelog-settings-guide-muted" });
+    const source = containerEl.createDiv({ cls: "momentlog-settings-guide momentlog-settings-guide-muted" });
     source.createEl("h3", { text: "Your notes stay yours" });
     source.createEl("p", {
-      text: "Timelog does not use a database or cloud service. Entries remain readable Markdown, and images stay as files in your vault even if you disable the plugin."
+      text: "Momentlog does not use a database or cloud service. Entries remain readable Markdown, and images stay as files in your vault even if you disable the plugin."
     });
   }
 }
