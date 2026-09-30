@@ -19,6 +19,8 @@ Everything stays in ordinary Markdown inside your vault.
 
 Use the day navigation to look back. On desktop, hover a moment to edit or delete it. On mobile, use the **…** menu beside the timestamp.
 
+Momentlog timestamps a moment when you first start typing or add a photo, not when you finally press **Record**. If you begin at 23:59 and save after midnight, the moment keeps its 23:59 time. The selected day still decides which daily note receives the moment. When you're following Today and the composer is empty, starting a new moment after midnight automatically moves to the new day.
+
 ### Open Momentlog on desktop
 
 Select the Momentlog clock icon in the left ribbon, or open the Command palette and run **Open Momentlog**.
@@ -59,7 +61,7 @@ Images are stored under:
 <folder>/attachments/YYYY-MM-DD/
 ```
 
-The settings page also includes a quick-start guide, Daily Notes setup instructions, and an **Open Momentlog** button.
+The settings page keeps the essentials first: storage, the current output path, and an **Open Momentlog** button. Quick start and Daily Notes guidance are available below as optional expandable help.
 
 ## Use Momentlog with Daily Notes
 
