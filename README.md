@@ -147,14 +147,11 @@ The release workflow publishes the exact files Obsidian and BRAT expect:
 - `styles.css`
 - `timelog-<version>.zip` for convenient manual installation
 
-The release version must match `manifest.json`.
+The release version comes from `manifest.json`.
 
-You can release either way:
+A merge to `main` automatically checks that version. If a GitHub Release for it does not exist yet, the workflow builds Timelog and publishes the release. If the release already exists, the workflow exits successfully without publishing a duplicate.
 
-1. Push a semantic-version tag such as `0.1.0`.
-2. Run **Actions → Release → Run workflow** and enter the current version.
-
-The workflow builds Timelog, verifies the version, creates the installable zip, and publishes the GitHub Release automatically.
+You can also trigger the same flow by pushing a semantic-version tag such as `0.1.0`, or manually through **Actions → Release → Run workflow**.
 
 For a tag-based release:
 
