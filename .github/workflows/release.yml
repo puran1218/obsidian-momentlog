@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (must match manifest.json, e.g. 0.1.0)"
+        description: "Release version (must match manifest.json, e.g. 0.2.0)"
         required: true
         type: string
 
@@ -73,7 +73,7 @@ jobs:
         shell: bash
         run: |
           cd dist
-          zip -r "../timelog-${{ steps.version.outputs.version }}.zip" timelog
+          zip -r "../momentlog-${{ steps.version.outputs.version }}.zip" momentlog
 
       - name: Publish GitHub release
         if: steps.release.outputs.exists != 'true'
@@ -83,10 +83,10 @@ jobs:
         shell: bash
         run: |
           gh release create "$VERSION" \
-            dist/timelog/main.js \
-            dist/timelog/manifest.json \
-            dist/timelog/styles.css \
-            "timelog-$VERSION.zip" \
+            dist/momentlog/main.js \
+            dist/momentlog/manifest.json \
+            dist/momentlog/styles.css \
+            "momentlog-$VERSION.zip" \
             --target "$GITHUB_SHA" \
-            --title "Timelog $VERSION" \
+            --title "Momentlog $VERSION" \
             --generate-notes
