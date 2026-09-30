@@ -494,10 +494,10 @@ class MomentlogView extends ItemView {
   }
 
   private async changeDate(days: number): Promise<void> {
-    this.followsToday = false;
     this.selectedDate = moment(this.selectedDate, "YYYY-MM-DD")
       .add(days, "day")
       .format("YYYY-MM-DD");
+    this.followsToday = this.selectedDate === moment().format("YYYY-MM-DD");
     this.restartCaptureClockIfNeeded();
     this.updateDate();
     await this.refreshTimeline();
@@ -516,8 +516,6 @@ class MomentlogView extends ItemView {
       return;
     }
 
-    this.beginCaptureIfNeeded();
-
     for (const file of images) {
       this.pendingAttachments.push({
         file,
@@ -525,6 +523,7 @@ class MomentlogView extends ItemView {
       });
     }
 
+    this.beginCaptureIfNeeded();
     this.renderAttachments();
     this.updateCaptureState();
   }
@@ -1114,12 +1113,10 @@ class MomentlogSettingTab extends PluginSettingTab {
 
     containerEl.createEl("h3", { text: "Storage" });
 
-    const preview = containerEl.createEl("p", {
-      cls: "momentlog-settings-path"
-    });
+    let preview: HTMLElement | null = null;
 
     const updatePreview = (): void => {
-      preview.setText(`Today: ${this.plugin.getDailyFilePath(moment().format("YYYY-MM-DD"))}`);
+      preview?.setText(`Today: ${this.plugin.getDailyFilePath(moment().format("YYYY-MM-DD"))}`);
     };
 
     new Setting(containerEl)
@@ -1150,6 +1147,9 @@ class MomentlogSettingTab extends PluginSettingTab {
           })
       );
 
+    preview = containerEl.createEl("p", {
+      cls: "momentlog-settings-path"
+    });
     updatePreview();
 
     new Setting(containerEl)
