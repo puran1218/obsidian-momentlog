@@ -88,5 +88,5 @@ jobs:
             dist/momentlog/styles.css \
             "momentlog-$VERSION.zip" \
             --target "$GITHUB_SHA" \
-            --title "Timelog $VERSION" \
+            --title "Momentlog $VERSION" \
             --generate-notes
