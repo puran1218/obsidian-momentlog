@@ -5,6 +5,7 @@ import {
   Menu,
   Modal,
   Notice,
+  Platform,
   Plugin,
   PluginSettingTab,
   Setting,
@@ -630,7 +631,7 @@ class MomentlogView extends ItemView {
       this.resetCaptureClock();
       await this.refreshTimeline();
 
-      if (this.app.isMobile) {
+      if (Platform.isIosApp || Platform.isAndroidApp) {
         this.textareaEl.blur();
       } else {
         this.textareaEl.focus();
