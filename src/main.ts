@@ -596,9 +596,14 @@ class TimelogView extends ItemView {
     this.listEl.empty();
 
     if (moments.length === 0) {
-      this.listEl.createDiv({
-        text: "Nothing here yet.",
-        cls: "timelog-empty"
+      const empty = this.listEl.createDiv({ cls: "timelog-empty" });
+      empty.createEl("strong", { text: "Your day starts here." });
+      empty.createEl("p", {
+        text: "Write a quick note or add a photo above, then select Record."
+      });
+      empty.createEl("p", {
+        text: `Moments are saved to ${this.plugin.getDailyFilePath(this.selectedDate)}.`,
+        cls: "timelog-empty-path"
       });
       return;
     }
@@ -990,10 +995,66 @@ class TimelogSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.addClass("timelog-settings");
+
+    containerEl.createEl("h2", { text: "Timelog" });
+    containerEl.createEl("p", {
+      text: "Capture the small moments that are easy to lose: what you're doing, what just happened, a quick thought, or a photo you want to remember. Timelog keeps capture fast and stores everything as ordinary Markdown in your vault.",
+      cls: "timelog-settings-intro"
+    });
+
+    const quickStart = containerEl.createDiv({ cls: "timelog-settings-guide" });
+    quickStart.createEl("h3", { text: "Quick start" });
+    const quickStartList = quickStart.createEl("ol");
+    quickStartList.createEl("li", {
+      text: "Open Timelog. On desktop, select the clock icon in the left ribbon. On mobile, open the ribbon/menu and select Timelog. You can always use the Command palette and run Open Timelog."
+    });
+    quickStartList.createEl("li", {
+      text: "Write a short note, or paste, drag, or choose one or more photos."
+    });
+    quickStartList.createEl("li", {
+      text: "Select Record. Your newest moment appears at the top of today's timeline."
+    });
+
+    new Setting(quickStart)
+      .setName("Open Timelog")
+      .setDesc("Jump straight to today's capture view.")
+      .addButton((button) =>
+        button
+          .setButtonText("Open")
+          .setCta()
+          .onClick(() => {
+            void this.plugin.openTimelog(true);
+          })
+      );
+
+    const dailyNotes = containerEl.createDiv({ cls: "timelog-settings-guide" });
+    dailyNotes.createEl("h3", { text: "Use Timelog with Daily Notes" });
+    dailyNotes.createEl("p", {
+      text: "Timelog works on its own, but it can also share the same daily Markdown file as Obsidian's Daily Notes core plugin."
+    });
+
+    const dailyNotesList = dailyNotes.createEl("ol");
+    dailyNotesList.createEl("li", {
+      text: "Enable the Daily Notes core plugin in Obsidian."
+    });
+    dailyNotesList.createEl("li", {
+      text: "In Daily Notes settings, set New file location to Timelog and Date format to YYYY-MM-DD."
+    });
+    dailyNotesList.createEl("li", {
+      text: "Keep the Timelog folder and file format below set to those same values."
+    });
+
+    dailyNotes.createEl("p", {
+      text: "Already have an existing Daily Notes folder or date format? Keep it. Just set Timelog below to match your current Daily Notes settings instead.",
+      cls: "timelog-settings-note"
+    });
+
+    containerEl.createEl("h3", { text: "Storage" });
 
     new Setting(containerEl)
       .setName("Daily note folder")
-      .setDesc("Timelog stores one Markdown file per day here. Use your Daily Notes folder if you want both to share the same files.")
+      .setDesc("Folder where Timelog stores one Markdown file per day. Match your Daily Notes new-file location if you want both to share the same note.")
       .addText((text) =>
         text
           .setPlaceholder("Timelog")
@@ -1006,7 +1067,7 @@ class TimelogSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Daily note file format")
-      .setDesc("Moment.js date format used for the Markdown file name. The default is YYYY-MM-DD.")
+      .setDesc("Date format used for each Markdown file name. Match your Daily Notes date format when sharing the same files.")
       .addText((text) =>
         text
           .setPlaceholder("YYYY-MM-DD")
@@ -1016,5 +1077,11 @@ class TimelogSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    const source = containerEl.createDiv({ cls: "timelog-settings-guide timelog-settings-guide-muted" });
+    source.createEl("h3", { text: "Your notes stay yours" });
+    source.createEl("p", {
+      text: "Timelog does not use a database or cloud service. Entries remain readable Markdown, and images stay as files in your vault even if you disable the plugin."
+    });
   }
 }
