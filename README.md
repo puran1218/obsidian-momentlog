@@ -8,11 +8,22 @@ Timelog keeps the interaction deliberately small: **write or add a photo → rec
 
 ## How to use
 
-1. Open **Timelog** from the ribbon or run **Open Timelog** from the command palette.
-2. Write a short note, or paste, drag, or choose one or more images.
+The workflow is intentionally small:
+
+1. Open **Timelog**.
+2. Write a short note, or add one or more photos.
 3. Select **Record** or press `Cmd/Ctrl + Enter`.
-4. Your newest moments appear at the top of today's timeline.
-5. Use the day navigation to look back, or edit and delete moments when needed.
+4. Your newest moment appears at the top of today's timeline.
+
+Use the day navigation to look back. On desktop, hover a moment to edit or delete it. On mobile, use the **…** menu beside the timestamp.
+
+### Open Timelog on desktop
+
+Select the Timelog clock icon in the left ribbon, or open the Command palette and run **Open Timelog**.
+
+### Open Timelog on mobile
+
+Open Obsidian's ribbon/menu and select **Timelog**. You can also open the Command palette and run **Open Timelog**.
 
 That's the whole workflow.
 
@@ -30,7 +41,7 @@ That's the whole workflow.
 
 ## Settings
 
-Timelog only needs two settings:
+Timelog only needs two storage settings:
 
 - **Daily note folder** — defaults to `Timelog`
 - **Daily note file format** — defaults to `YYYY-MM-DD`
@@ -41,13 +52,29 @@ By default Timelog writes to:
 Timelog/YYYY-MM-DD.md
 ```
 
-If you already use Daily Notes, set Timelog's folder and file-name format to the same values. Timelog only manages its own `## Timelog` entries.
-
 Images are stored under:
 
 ```
 <folder>/attachments/YYYY-MM-DD/
 ```
+
+The Timelog settings page also includes a short quick-start guide, Daily Notes setup instructions, and an **Open Timelog** button.
+
+## Use Timelog with Daily Notes
+
+Timelog works perfectly well on its own. If you also use Obsidian's **Daily Notes** core plugin, both can write to the same daily Markdown file.
+
+To use Timelog's defaults for both:
+
+1. Enable the **Daily Notes** core plugin.
+2. Open **Settings → Daily Notes**.
+3. Set **New file location** to `Timelog`.
+4. Set **Date format** to `YYYY-MM-DD`.
+5. Keep Timelog's **Daily note folder** and **Daily note file format** set to those same values.
+
+Now opening a Daily Note and recording a Timelog moment both target the same file. Timelog only manages its own `## Timelog` entries.
+
+If you already have an established Daily Notes folder or date format, do the reverse: leave Daily Notes unchanged and set Timelog's two storage settings to match it.
 
 ## Markdown stays the source of truth
 
