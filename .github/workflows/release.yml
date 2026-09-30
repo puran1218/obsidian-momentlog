@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (must match manifest.json, e.g. 0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="$GITHUB_REF_NAME"
+          fi
+
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+
+          if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "Release version '$VERSION' does not match manifest.json version '$MANIFEST_VERSION'."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - run: npm install
+
+      - run: npm run build
+
+      - name: Create installable zip
+        shell: bash
+        run: |
+          cd dist
+          zip -r "../timelog-${{ steps.version.outputs.version }}.zip" timelog
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists."
+            exit 1
+          fi
+
+          gh release create "$VERSION" \
+            dist/timelog/main.js \
+            dist/timelog/manifest.json \
+            dist/timelog/styles.css \
+            "timelog-$VERSION.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Timelog $VERSION" \
+            --generate-notes

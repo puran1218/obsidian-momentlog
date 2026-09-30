@@ -3,7 +3,7 @@
   "name": "Timelog",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Capture small moments throughout the day in a simple timeline.",
+  "description": "Capture what you're doing and feeling as it happens. Write a quick note or add a photo, and Timelog saves each moment to a simple daily timeline in plain Markdown.",
   "author": "Puran",
   "authorUrl": "https://github.com/puran1218",
   "isDesktopOnly": false
