@@ -1,7 +1,7 @@
 {
   "id": "timelog",
   "name": "Timelog",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.5.0",
   "description": "Capture what you're doing and feeling as it happens. Write a quick note or add a photo, and Timelog saves each moment to a simple daily timeline in plain Markdown.",
   "author": "Puran",
