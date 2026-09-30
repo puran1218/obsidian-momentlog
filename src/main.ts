@@ -243,7 +243,7 @@ export default class MomentlogPlugin extends Plugin {
   }
 
   private insertEntry(source: string, block: string): string {
-    const headingPattern = /^## Momentlog\s*$/m;
+    const headingPattern = /^(?:## Momentlog|## Timelog)\s*$/m;
     const heading = headingPattern.exec(source);
 
     if (!heading || heading.index === undefined) {
