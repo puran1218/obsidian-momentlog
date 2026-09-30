@@ -1,9 +1,9 @@
 {
-  "id": "timelog",
-  "name": "Timelog",
-  "version": "0.1.1",
-  "minAppVersion": "1.5.0",
-  "description": "Capture what you're doing and feeling as it happens. Write a quick note or add a photo, and Timelog saves each moment to a simple daily timeline in plain Markdown.",
+  "id": "momentlog",
+  "name": "Momentlog",
+  "version": "0.2.0",
+  "minAppVersion": "1.13.7",
+  "description": "Capture quick notes and photos as moments in a simple daily timeline, stored as plain Markdown in your vault.",
   "author": "Puran",
   "authorUrl": "https://github.com/puran1218",
   "isDesktopOnly": false
