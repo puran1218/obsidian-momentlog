@@ -151,7 +151,10 @@ export default class MomentlogPlugin extends Plugin {
       }
     }
 
-    return moments.sort((a, b) => b.id.localeCompare(a.id));
+    return moments.sort((a, b) => {
+      const byTime = b.time.localeCompare(a.time);
+      return byTime !== 0 ? byTime : b.id.localeCompare(a.id);
+    });
   }
 
   async addMoment(date: string, content: string, startedAt: number): Promise<void> {
@@ -317,6 +320,7 @@ class MomentlogView extends ItemView {
   private capturing = false;
   private followsToday = true;
   private captureStartedAt: number | null = null;
+  private refreshGeneration = 0;
 
   constructor(leaf: WorkspaceLeaf, plugin: MomentlogPlugin) {
     super(leaf);
@@ -662,26 +666,42 @@ class MomentlogView extends ItemView {
       return;
     }
 
-    const moments = await this.plugin.readMoments(this.selectedDate);
-    this.listEl.empty();
+    const generation = ++this.refreshGeneration;
+    const selectedDate = this.selectedDate;
+    const moments = await this.plugin.readMoments(selectedDate);
+
+    if (generation !== this.refreshGeneration || selectedDate !== this.selectedDate) {
+      return;
+    }
+
+    const staging = document.createElement("div");
 
     if (moments.length === 0) {
-      const empty = this.listEl.createDiv({ cls: "momentlog-empty" });
+      const empty = staging.createDiv({ cls: "momentlog-empty" });
       empty.createEl("strong", { text: "Your day starts here." });
       empty.createEl("p", {
         text: "Write a quick note or add a photo above, then select Record."
       });
       empty.createEl("p", {
-        text: `Moments are saved to ${this.plugin.getDailyFilePath(this.selectedDate)}.`,
+        text: `Moments are saved to ${this.plugin.getDailyFilePath(selectedDate)}.`,
         cls: "momentlog-empty-path"
       });
+
+      if (generation === this.refreshGeneration && selectedDate === this.selectedDate) {
+        this.listEl.replaceChildren(...Array.from(staging.childNodes));
+      }
+
       return;
     }
 
-    const sourcePath = this.plugin.getDailyFilePath(this.selectedDate);
+    const sourcePath = this.plugin.getDailyFilePath(selectedDate);
 
     for (const momentEntry of moments) {
-      const entry = this.listEl.createDiv({ cls: "momentlog-entry" });
+      if (generation !== this.refreshGeneration || selectedDate !== this.selectedDate) {
+        return;
+      }
+
+      const entry = staging.createDiv({ cls: "momentlog-entry" });
       const header = entry.createDiv({ cls: "momentlog-entry-header" });
       header.createDiv({ text: momentEntry.time, cls: "momentlog-time" });
 
@@ -722,6 +742,7 @@ class MomentlogView extends ItemView {
 
       const card = entry.createDiv({ cls: "momentlog-card" });
       const rendered = card.createDiv({ cls: "momentlog-entry-content" });
+
       await MarkdownRenderer.render(
         this.app,
         momentEntry.content,
@@ -729,6 +750,10 @@ class MomentlogView extends ItemView {
         sourcePath,
         this
       );
+
+      if (generation !== this.refreshGeneration || selectedDate !== this.selectedDate) {
+        return;
+      }
 
       rendered.querySelectorAll<HTMLImageElement>("img").forEach((image) => {
         image.addClass("momentlog-viewable-image");
@@ -768,6 +793,10 @@ class MomentlogView extends ItemView {
       remove.addEventListener("click", () => {
         this.confirmDelete(momentEntry);
       });
+    }
+
+    if (generation === this.refreshGeneration && selectedDate === this.selectedDate) {
+      this.listEl.replaceChildren(...Array.from(staging.childNodes));
     }
   }
 
@@ -850,6 +879,13 @@ class ImageViewerModal extends Modal {
   onOpen(): void {
     this.modalEl.addClass("momentlog-image-modal");
     this.contentEl.addClass("momentlog-image-modal-content");
+
+    const close = this.contentEl.createEl("button", {
+      cls: "momentlog-image-close",
+      attr: { "aria-label": "Close image", title: "Close" }
+    });
+    setIcon(close, "x");
+    close.addEventListener("click", () => this.close());
 
     const stage = this.contentEl.createDiv({ cls: "momentlog-image-stage" });
     this.imageEl = stage.createEl("img", {
@@ -1038,22 +1074,42 @@ class EditMomentModal extends Modal {
   }
 
   onOpen(): void {
-    const { contentEl } = this;
-    contentEl.createEl("h3", { text: `Edit ${this.momentEntry.time}` });
+    this.modalEl.addClass("momentlog-edit-modal");
+    this.contentEl.addClass("momentlog-edit-modal-content");
 
-    const textarea = contentEl.createEl("textarea", {
+    const header = this.contentEl.createDiv({ cls: "momentlog-edit-header" });
+    const cancel = header.createEl("button", {
+      text: "Cancel",
+      cls: "momentlog-edit-header-action"
+    });
+
+    header.createDiv({
+      text: `Edit ${this.momentEntry.time}`,
+      cls: "momentlog-edit-title"
+    });
+
+    const save = header.createEl("button", {
+      text: "Save",
+      cls: "mod-cta momentlog-edit-header-action"
+    });
+
+    const textarea = this.contentEl.createEl("textarea", {
       cls: "momentlog-modal-textarea"
     });
     textarea.value = this.momentEntry.content;
 
-    const actions = contentEl.createDiv({ cls: "momentlog-modal-actions" });
-    const cancel = actions.createEl("button", { text: "Cancel" });
-    cancel.addEventListener("click", () => this.close());
+    const keepOpenOnBackdrop = (event: Event): void => {
+      if (event.target === this.containerEl) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        textarea.blur();
+      }
+    };
 
-    const save = actions.createEl("button", {
-      text: "Save",
-      cls: "mod-cta"
-    });
+    this.containerEl.addEventListener("pointerdown", keepOpenOnBackdrop, true);
+    this.containerEl.addEventListener("click", keepOpenOnBackdrop, true);
+
+    cancel.addEventListener("click", () => this.close());
 
     const submit = async (): Promise<void> => {
       const value = textarea.value.trim();
@@ -1062,7 +1118,9 @@ class EditMomentModal extends Modal {
         return;
       }
 
+      textarea.blur();
       save.disabled = true;
+      cancel.disabled = true;
 
       try {
         await this.onSave(value);
@@ -1071,6 +1129,7 @@ class EditMomentModal extends Modal {
         console.error(error);
         new Notice("Could not update this moment.");
         save.disabled = false;
+        cancel.disabled = false;
       }
     };
 
@@ -1161,7 +1220,10 @@ class MomentlogSettingTab extends PluginSettingTab {
           .setButtonText("Open")
           .setCta()
           .onClick(() => {
-            void this.plugin.openMomentlog(true);
+            this.app.setting.close();
+            window.setTimeout(() => {
+              void this.plugin.openMomentlog(true);
+            }, 0);
           })
       );
 
