@@ -316,6 +316,44 @@
   gap: 8px;
 }
 
+.momentlog-edit-modal .modal-close-button {
+  display: none;
+}
+
+.momentlog-edit-modal-content {
+  padding-top: 0;
+}
+
+.momentlog-edit-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto minmax(72px, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  background: var(--background-primary);
+}
+
+.momentlog-edit-title {
+  font-weight: var(--font-semibold);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.momentlog-edit-header-action {
+  min-height: 36px;
+}
+
+.momentlog-edit-header-action:first-child {
+  justify-self: start;
+}
+
+.momentlog-edit-header-action:last-child {
+  justify-self: end;
+}
+
 .momentlog-image-modal {
   --modal-width: 100vw;
   --modal-height: 100vh;
@@ -333,13 +371,23 @@
 }
 
 .momentlog-image-modal .modal-close-button {
-  position: absolute;
-  z-index: 3;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  display: none;
+}
+
+.momentlog-image-close {
+  position: fixed;
+  z-index: 4;
+  top: 20px;
+  right: 20px;
   width: 44px;
   height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
   border-radius: 999px;
+  box-shadow: none;
   background: rgba(30, 30, 30, 0.78);
   color: #fff;
   backdrop-filter: blur(10px);
@@ -419,6 +467,24 @@
 @media (max-width: 600px) {
   .momentlog-view {
     padding: 12px 14px 28px;
+  }
+
+  .momentlog-image-close {
+    top: max(60px, calc(env(safe-area-inset-top, 0px) + 12px));
+    right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
+  }
+
+  .momentlog-edit-modal {
+    width: min(100vw, 560px);
+  }
+
+  .momentlog-edit-modal-content {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .momentlog-modal-textarea {
+    min-height: 220px;
+    max-height: 50vh;
   }
 
   .momentlog-today-button {
