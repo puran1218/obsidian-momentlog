@@ -1099,7 +1099,9 @@ class EditMomentModal extends Modal {
     textarea.value = this.momentEntry.content;
 
     const keepOpenOnBackdrop = (event: Event): void => {
-      if (event.target === this.containerEl) {
+      const target = event.target;
+
+      if (target instanceof Node && !this.modalEl.contains(target)) {
         event.preventDefault();
         event.stopImmediatePropagation();
         textarea.blur();
@@ -1220,7 +1222,11 @@ class MomentlogSettingTab extends PluginSettingTab {
           .setButtonText("Open")
           .setCta()
           .onClick(() => {
-            this.app.setting.close();
+            const appWithSettings = this.app as App & {
+              setting: { close: () => void };
+            };
+
+            appWithSettings.setting.close();
             window.setTimeout(() => {
               void this.plugin.openMomentlog(true);
             }, 0);
