@@ -8,7 +8,6 @@ import {
   Platform,
   Plugin,
   PluginSettingTab,
-  Setting,
   SettingDefinitionItem,
   TFile,
   WorkspaceLeaf,
