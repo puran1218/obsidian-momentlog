@@ -186,11 +186,13 @@ The release workflow publishes the files Obsidian and BRAT expect:
 - `main.js`
 - `manifest.json`
 - `styles.css`
-- `momentlog-<version>.zip` for convenient manual installation
+- GitHub Artifact Attestations for `main.js` and `styles.css`
 
-The release version comes from `manifest.json`. A merge to `main` checks that version and publishes a GitHub Release when one does not already exist.
+The release version comes from `manifest.json`. A merge to `main` checks that version and publishes a GitHub Release when one does not already exist. The only GitHub Release attachments are `main.js`, `manifest.json`, and `styles.css`.
 
-The GitHub release tag must exactly match the version in `manifest.json`.
+The GitHub release tag must exactly match the version in `manifest.json`. Every release is built with `npm ci` from the committed `package-lock.json`. The workflow produces and verifies signed GitHub provenance attestations for the release assets before uploading them. You can independently run `gh attestation verify main.js -R puran1218/obsidian-momentlog` after downloading a release's `main.js`.
+
+To publish in Obsidian, merge a version-bumped PR and wait for the new release to finish. In the [Obsidian Community directory](https://community.obsidian.md), open the plugin entry, check the latest review, and choose **Publish** once the errors are resolved. Use **Review branch** for a pre-release source check or **Request review** to repeat the scan.
 
 ## Privacy
 

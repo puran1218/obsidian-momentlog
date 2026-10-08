@@ -8,7 +8,7 @@ import {
   Platform,
   Plugin,
   PluginSettingTab,
-  Setting,
+  SettingDefinitionItem,
   TFile,
   WorkspaceLeaf,
   moment,
@@ -18,7 +18,6 @@ import {
 
 const VIEW_TYPE = "momentlog-view";
 const SECTION_HEADING = "## Momentlog";
-const LEGACY_SECTION_HEADING = "## Timelog";
 const ENTRY_PATTERN = /<!-- (?:momentlog|timelog)-entry:([^\n]+) -->\s*\n### ([^\n]+)\s*\n\n?([\s\S]*?)\n<!-- \/(?:momentlog|timelog)-entry -->/g;
 
 interface MomentlogSettings {
@@ -56,7 +55,7 @@ export default class MomentlogPlugin extends Plugin {
 
     this.addCommand({
       id: "open",
-      name: "Open Momentlog",
+      name: "Open",
       callback: () => {
         void this.openMomentlog(false);
       }
@@ -71,10 +70,6 @@ export default class MomentlogPlugin extends Plugin {
     });
 
     this.addSettingTab(new MomentlogSettingTab(this.app, this));
-  }
-
-  onunload(): void {
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE);
   }
 
   async openMomentlog(focusComposer: boolean): Promise<void> {
@@ -439,7 +434,7 @@ class MomentlogView extends ItemView {
         multiple: "true"
       }
     });
-    fileInput.style.display = "none";
+    fileInput.hidden = true;
 
     addImage.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", () => {
@@ -674,7 +669,7 @@ class MomentlogView extends ItemView {
       return;
     }
 
-    const staging = document.createElement("div");
+    const staging = createDiv();
 
     if (moments.length === 0) {
       const empty = staging.createDiv({ cls: "momentlog-empty" });
@@ -1155,102 +1150,118 @@ class EditMomentModal extends Modal {
 }
 
 class MomentlogSettingTab extends PluginSettingTab {
-  private plugin: MomentlogPlugin;
+  private readonly plugin: MomentlogPlugin;
+  private pathPreview: HTMLElement | null = null;
 
   constructor(app: App, plugin: MomentlogPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.addClass("momentlog-settings");
+  private updatePathPreview(): void {
+    this.pathPreview?.setText(
+      this.plugin.getDailyFilePath(moment().format("YYYY-MM-DD"))
+    );
+  }
 
-    containerEl.createEl("h2", { text: "Momentlog" });
-    containerEl.createEl("p", {
-      text: "Capture quick notes and photos as moments throughout your day. Everything stays as plain Markdown in your vault.",
-      cls: "momentlog-settings-intro"
-    });
-
-    containerEl.createEl("h3", { text: "Storage" });
-
-    let preview: HTMLElement | null = null;
-
-    const updatePreview = (): void => {
-      preview?.setText(`Today: ${this.plugin.getDailyFilePath(moment().format("YYYY-MM-DD"))}`);
-    };
-
-    new Setting(containerEl)
-      .setName("Daily note folder")
-      .setDesc("Folder where Momentlog stores one Markdown file per day.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Momentlog")
-          .setValue(this.plugin.settings.folder)
-          .onChange(async (value) => {
-            this.plugin.settings.folder = value.trim();
-            await this.plugin.saveSettings();
-            updatePreview();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName("Daily note file format")
-      .setDesc("Date format used for each Markdown file name.")
-      .addText((text) =>
-        text
-          .setPlaceholder("YYYY-MM-DD")
-          .setValue(this.plugin.settings.fileNameFormat)
-          .onChange(async (value) => {
-            this.plugin.settings.fileNameFormat = value.trim() || "YYYY-MM-DD";
-            await this.plugin.saveSettings();
-            updatePreview();
-          })
-      );
-
-    preview = containerEl.createEl("p", {
-      cls: "momentlog-settings-path"
-    });
-    updatePreview();
-
-    new Setting(containerEl)
-      .setName("Open Momentlog")
-      .setDesc("Jump straight to today's capture view.")
-      .addButton((button) =>
-        button
-          .setButtonText("Open")
-          .setCta()
-          .onClick(() => {
-            const appWithSettings = this.app as App & {
-              setting: { close: () => void };
-            };
-
-            appWithSettings.setting.close();
-            window.setTimeout(() => {
-              void this.plugin.openMomentlog(true);
-            }, 0);
-          })
-      );
-
-    const quickStart = containerEl.createEl("details", {
-      cls: "momentlog-settings-details"
-    });
-    quickStart.createEl("summary", { text: "Quick start" });
-    quickStart.createEl("p", {
-      text: "Write a short note or add a photo, then select Record. On desktop, open Momentlog from the clock icon in the left ribbon. On mobile, open the ribbon/menu and select Momentlog. The Command palette works on both."
-    });
-
-    const dailyNotes = containerEl.createEl("details", {
-      cls: "momentlog-settings-details"
-    });
-    dailyNotes.createEl("summary", { text: "Use with Daily Notes" });
-    dailyNotes.createEl("p", {
-      text: "Momentlog can share the same daily Markdown file as Obsidian's Daily Notes core plugin. Make the Daily Notes new-file location and date format match the two Momentlog storage settings above."
-    });
-    dailyNotes.createEl("p", {
-      text: "Default setup: New file location = Momentlog, Date format = YYYY-MM-DD. If you already have a Daily Notes setup, leave it unchanged and make Momentlog match it instead.",
-      cls: "momentlog-settings-note"
-    });
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: "Capture the small moments",
+        desc: "Save a quick note or photo to a daily timeline in plain Markdown."
+      },
+      {
+        type: "group",
+        heading: "Storage",
+        items: [
+          {
+            name: "Daily note folder",
+            desc: "Folder for your daily Markdown files.",
+            render: (setting) => {
+              setting.addText((text) =>
+                text
+                  .setPlaceholder("Momentlog")
+                  .setValue(this.plugin.settings.folder)
+                  .onChange(async (value) => {
+                    this.plugin.settings.folder = value.trim();
+                    await this.plugin.saveSettings();
+                    this.updatePathPreview();
+                  })
+              );
+            }
+          },
+          {
+            name: "Daily note file format",
+            desc: "Moment.js date format for daily file names.",
+            render: (setting) => {
+              setting.addText((text) =>
+                text
+                  .setPlaceholder("YYYY-MM-DD")
+                  .setValue(this.plugin.settings.fileNameFormat)
+                  .onChange(async (value) => {
+                    this.plugin.settings.fileNameFormat = value.trim() || "YYYY-MM-DD";
+                    await this.plugin.saveSettings();
+                    this.updatePathPreview();
+                  })
+              );
+            }
+          },
+          {
+            name: "Today's file",
+            render: (setting) => {
+              this.pathPreview = setting.descEl.createEl("code");
+              this.updatePathPreview();
+            }
+          }
+        ]
+      },
+      {
+        name: "Open Momentlog",
+        desc: "Go straight to your daily timeline.",
+        render: (setting) => {
+          setting.addButton((button) =>
+            button
+              .setButtonText("Open")
+              .setCta()
+              .onClick(() => {
+                const settingsApp = this.app as App & {
+                  setting: { close: () => void };
+                };
+                settingsApp.setting.close();
+                window.setTimeout(() => {
+                  void this.plugin.openMomentlog(true);
+                }, 0);
+              })
+          );
+        }
+      },
+      {
+        name: "Quick start",
+        render: (setting) => {
+          const guide = setting.descEl.createEl("details", {
+            cls: "momentlog-settings-details"
+          });
+          guide.createEl("summary", { text: "How to capture a moment" });
+          guide.createEl("p", {
+            text: "Open Momentlog from the ribbon or Command palette, write a note or add a photo, and select Record."
+          });
+        }
+      },
+      {
+        name: "Use with Daily Notes",
+        render: (setting) => {
+          const guide = setting.descEl.createEl("details", {
+            cls: "momentlog-settings-details"
+          });
+          guide.createEl("summary", { text: "Share your daily note" });
+          guide.createEl("p", {
+            text: "Enable the Daily Notes core plugin and match its new-file location and date format with the Momentlog storage settings above."
+          });
+          guide.createEl("p", {
+            text: "Default: location Momentlog, format YYYY-MM-DD. You can keep an existing Daily Notes setup and instead make Momentlog match it."
+          });
+        }
+      }
+    ];
   }
 }
