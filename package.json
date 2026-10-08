@@ -1,18 +1,22 @@
 {
   "name": "obsidian-momentlog",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Capture quick notes and photos as moments in a simple daily timeline for Obsidian.",
   "main": "main.js",
   "type": "module",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production && node scripts/package.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "lint": "eslint src/main.ts"
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
     "esbuild": "0.25.5",
     "obsidian": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "moment": "^2.30.1",
+    "eslint": "^9.37.0",
+    "eslint-plugin-obsidianmd": "^0.4.2"
   }
 }
