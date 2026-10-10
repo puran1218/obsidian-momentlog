@@ -872,6 +872,9 @@ class ImageViewerModal extends Modal {
   }
 
   onOpen(): void {
+    // Obsidian can place its native close control outside modalEl.
+    // Scope its removal to this viewer's container, not every modal.
+    this.containerEl.addClass("momentlog-image-container");
     this.modalEl.addClass("momentlog-image-modal");
     this.contentEl.addClass("momentlog-image-modal-content");
 
