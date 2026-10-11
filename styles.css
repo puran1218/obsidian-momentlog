@@ -370,8 +370,11 @@
   background: #000;
 }
 
-.momentlog-image-modal .modal-close-button {
-  display: none;
+/* Obsidian's own close control may be a sibling of .modal rather than
+   a descendant. Target the enclosing modal container so only our single
+   safe-area-aware close button remains visible. */
+.momentlog-image-container .modal-close-button {
+  display: none !important;
 }
 
 .momentlog-image-close {
