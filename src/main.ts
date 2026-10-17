@@ -1087,6 +1087,9 @@ class EditMomentModal extends Modal {
   }
 
   onOpen(): void {
+    // The native close button can live outside modalEl on mobile.
+    // The editor already has explicit Cancel and Save actions.
+    this.containerEl.addClass("momentlog-edit-container");
     this.modalEl.addClass("momentlog-edit-modal");
     this.contentEl.addClass("momentlog-edit-modal-content");
 
@@ -1115,7 +1118,8 @@ class EditMomentModal extends Modal {
     });
 
     const textarea = this.contentEl.createEl("textarea", {
-      cls: "momentlog-modal-textarea"
+      cls: "momentlog-modal-textarea",
+      attr: { "aria-label": "Edit moment text" }
     });
     textarea.value = this.momentEntry.content;
 
