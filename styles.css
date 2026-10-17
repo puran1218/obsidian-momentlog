@@ -354,6 +354,67 @@
   justify-self: end;
 }
 
+/* Only mobile editing is a keyboard-aware, scroll-contained panel.
+   Desktop keeps Obsidian's regular compact modal sizing. */
+.momentlog-mobile-edit-container .momentlog-edit-modal {
+  position: absolute;
+  top: calc(
+    var(--momentlog-edit-viewport-top, 0px) +
+    max(12px, env(safe-area-inset-top, 0px))
+  );
+  left: 12px;
+  right: 12px;
+  width: auto;
+  max-width: 560px;
+  min-height: 0;
+  max-height: none;
+  height: min(
+    70dvh,
+    620px,
+    calc(
+      var(--momentlog-edit-viewport-height, 100dvh) -
+      max(12px, env(safe-area-inset-top, 0px)) -
+      max(12px, env(safe-area-inset-bottom, 0px))
+    )
+  );
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.momentlog-mobile-edit-container .momentlog-edit-modal-content {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 12px 12px;
+}
+
+.momentlog-mobile-edit-container .momentlog-edit-header {
+  position: relative;
+  top: auto;
+  flex: 0 0 auto;
+}
+
+.momentlog-mobile-edit-container .momentlog-modal-textarea {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  margin: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  resize: none;
+  font-size: max(16px, var(--font-text-size));
+}
+
 .momentlog-image-modal {
   --modal-width: 100vw;
   --modal-height: 100vh;
@@ -475,19 +536,6 @@
   .momentlog-image-close {
     top: max(60px, calc(env(safe-area-inset-top, 0px) + 12px));
     right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
-  }
-
-  .momentlog-edit-modal {
-    width: min(100vw, 560px);
-  }
-
-  .momentlog-edit-modal-content {
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
-  }
-
-  .momentlog-modal-textarea {
-    min-height: 220px;
-    max-height: 50vh;
   }
 
   .momentlog-today-button {
