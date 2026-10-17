@@ -1060,6 +1060,21 @@ class ImageViewerModal extends Modal {
 class EditMomentModal extends Modal {
   private momentEntry: MomentlogMoment;
   private onSave: (content: string) => Promise<void>;
+  private focusTimer: number | null = null;
+
+  private readonly syncMobileViewport = (): void => {
+    const viewport = window.visualViewport;
+    const height = viewport?.height ?? window.innerHeight;
+    const offsetTop = viewport?.offsetTop ?? 0;
+
+    // Obsidian's iOS viewport can shrink or move when the software keyboard opens.
+    // CSS custom properties keep the layout within the visible viewport without
+    // directly assigning style properties (which the Community lint rules reject).
+    this.containerEl.setCssProps({
+      "--momentlog-edit-viewport-height": `${Math.max(0, Math.round(height))}px`,
+      "--momentlog-edit-viewport-top": `${Math.max(0, Math.round(offsetTop))}px`
+    });
+  };
 
   constructor(
     app: App,
@@ -1074,6 +1089,14 @@ class EditMomentModal extends Modal {
   onOpen(): void {
     this.modalEl.addClass("momentlog-edit-modal");
     this.contentEl.addClass("momentlog-edit-modal-content");
+
+    if (Platform.isIosApp || Platform.isAndroidApp) {
+      this.containerEl.addClass("momentlog-mobile-edit-container");
+      this.syncMobileViewport();
+      window.visualViewport?.addEventListener("resize", this.syncMobileViewport);
+      window.visualViewport?.addEventListener("scroll", this.syncMobileViewport);
+      window.addEventListener("resize", this.syncMobileViewport);
+    }
 
     const header = this.contentEl.createDiv({ cls: "momentlog-edit-header" });
     const cancel = header.createEl("button", {
@@ -1144,10 +1167,21 @@ class EditMomentModal extends Modal {
       }
     });
 
-    window.setTimeout(() => textarea.focus(), 0);
+    this.focusTimer = window.setTimeout(() => {
+      this.focusTimer = null;
+      textarea.focus();
+    }, 0);
   }
 
   onClose(): void {
+    if (this.focusTimer !== null) {
+      window.clearTimeout(this.focusTimer);
+      this.focusTimer = null;
+    }
+
+    window.visualViewport?.removeEventListener("resize", this.syncMobileViewport);
+    window.visualViewport?.removeEventListener("scroll", this.syncMobileViewport);
+    window.removeEventListener("resize", this.syncMobileViewport);
     this.contentEl.empty();
   }
 }
