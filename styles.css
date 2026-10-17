@@ -316,8 +316,10 @@
   gap: 8px;
 }
 
-.momentlog-edit-modal .modal-close-button {
-  display: none;
+/* Keep native Obsidian close controls out of the editor: Cancel and Save
+   are the only actions. The close button can be outside modalEl. */
+.momentlog-edit-container .modal-close-button {
+  display: none !important;
 }
 
 .momentlog-edit-modal-content {
@@ -357,6 +359,12 @@
 /* Only mobile editing is a keyboard-aware, scroll-contained panel.
    Desktop keeps Obsidian's regular compact modal sizing. */
 .momentlog-mobile-edit-container .momentlog-edit-modal {
+  /* One surface owns the background, corners and clipping; do not layer
+     a second rounded textarea or content panel over the native modal. */
+  background: var(--background-primary);
+  border: 0;
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-l);
   position: absolute;
   top: calc(
     var(--momentlog-edit-viewport-top, 0px) +
@@ -390,13 +398,19 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 0 12px 12px;
+  padding: 12px 16px 16px;
+  background: transparent;
 }
 
 .momentlog-mobile-edit-container .momentlog-edit-header {
   position: relative;
   top: auto;
+  z-index: auto;
   flex: 0 0 auto;
+  margin-bottom: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: transparent;
 }
 
 .momentlog-mobile-edit-container .momentlog-modal-textarea {
@@ -406,13 +420,25 @@
   max-height: none;
   height: auto;
   margin: 0;
+  padding: 0 2px 4px;
   box-sizing: border-box;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-normal);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   resize: none;
   font-size: max(16px, var(--font-text-size));
+}
+
+.momentlog-mobile-edit-container .momentlog-modal-textarea:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .momentlog-image-modal {
